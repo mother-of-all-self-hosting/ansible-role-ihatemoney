@@ -15,7 +15,7 @@ This role *implicitly* depends on:
 - [`com.devture.ansible.role.playbook_help`](https://github.com/devture/com.devture.ansible.role.playbook_help)
 - [`com.devture.ansible.role.systemd_docker_base`](https://github.com/devture/com.devture.ansible.role.systemd_docker_base)
 
-Check [`defaults/main.yml`](defaults/main.yml) for the full list of supported options. Refer to [this page](docs/configuring-atuin.md) for details about setting up the service with this role.
+Check [`defaults/main.yml`](defaults/main.yml) for the full list of supported options. Refer to [this page](docs/configuring-ihatemoney.md) for details about setting up the service with this role.
 
 💡 For an Ansible playbook which integrates this role and makes it easier to use, see the [Mother-of-All-Self-Hosting Ansible playbook](https://github.com/mother-of-all-self-hosting/mash-playbook).
 
@@ -36,3 +36,9 @@ just prek-install-git-pre-commit-hook
 This role supports [Molecule](https://docs.ansible.com/projects/molecule/), an Ansible testing framework designed for developing and testing Ansible collections, playbooks, and roles.
 
 Refer to [this page](./molecule/README.md) for details about how to utilize it.
+
+### Releases
+
+Releases are tagged automatically. `.github/workflows/autotag.yml` runs [`bin/compute-next-tag.sh`](./bin/compute-next-tag.sh) on every push, and that script derives the tag from `ihatemoney_version` in [`defaults/main.yml`](defaults/main.yml) and from the tags that already exist — never from commit messages. A commit that touches only documentation or CI is not released.
+
+[`bin/test-compute-next-tag.sh`](./bin/test-compute-next-tag.sh) exercises the computation against throwaway repositories. It runs as a pre-commit hook whenever the script or `defaults/main.yml` changes, and can be run by hand at any time.
