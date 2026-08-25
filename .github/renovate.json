@@ -1,5 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "No automerge for I hate money's own version, not even at the patch level: the app runs flask_migrate's `upgrade()` against the operator's database on every start (ihatemoney/run.py, 'auto-execute migrations on runtime'), and patch releases do add migrations - 7.0.1 introduced 06884b17c50f_fix_password_hash_length.",
+    "A bumped image would therefore rewrite a live schema, forward-only, before anyone looked at the update; Molecule installs from scratch and structurally cannot see that risk."
+  ],
   "extends": [
     "github>mother-of-all-self-hosting/renovate-config#v1.0.0"
   ]
