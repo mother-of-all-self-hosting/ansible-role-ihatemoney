@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2026 spatterlight
 # SPDX-FileCopyrightText: 2026 Suguru Hirahara
 #
@@ -31,14 +32,69 @@ provisioner:
         # Helper variables
         ihatemoney_debug_service_enabled: false
 
+        # The paths and the container name the role derives from its identifier.
+        # Those defaults are Jinja-derived, so a verify play cannot read them out
+        # of defaults/main.yml, and they are spelled out here instead.
+        ihatemoney_molecule_container: ihatemoney
+        ihatemoney_molecule_base_path: /ihatemoney
+        ihatemoney_molecule_data_path: /ihatemoney/data
+
+        # A directory bind-mounted into the container through
+        # `ihatemoney_container_additional_volumes_custom`. Reading the marker
+        # back from inside the container is what proves that the list really
+        # becomes a `--mount` argument instead of being rendered nowhere.
+        ihatemoney_molecule_extra_mount_path_host: /ihatemoney-molecule-extra
+        ihatemoney_molecule_extra_mount_path_container: /extra
+        ihatemoney_molecule_extra_mount_marker: molecule-extra-volume-marker
+
+        # A project created over the HTTP API and then looked for in the
+        # database, which is how the scenario checks that I hate money is
+        # writing to the database the role pointed it at.
+        ihatemoney_molecule_project_id: moleculeproject
+        ihatemoney_molecule_project_password: molecule-project-password
+
         # Variables for I hate money
         ihatemoney_uid: 1000
         ihatemoney_gid: 1000
         ihatemoney_scheme: http
         ihatemoney_hostname: localhost
-        ihatemoney_container_labels_traefik_enabled: false
-        ihatemoney_container_http_host_bind_port: 8000
-        ihatemoney_environment_variable_secret: secret
+
+        # Deliberately not I hate money's own default of `/`. The prefix reaches
+        # the process only through `APPLICATION_ROOT` in the rendered env file,
+        # and the pages it then serves link to their assets underneath it.
+        ihatemoney_path_prefix: /ihatemoney
+
+        # Deliberately not the image's own default of `tralala`, so that the
+        # configuration inside the container is recognizably the role's and not
+        # the image's.
+        ihatemoney_environment_variable_secret: molecule-secret-default
+
+        # Needed for the API to accept the project the verification creates.
+        # The role's own default keeps creation closed.
+        ihatemoney_public_project_creation: true
+
+        # Deliberately not I hate money's own default of 8000. The port reaches
+        # the process only through `PORT` in the rendered env file, and gunicorn
+        # binds that port inside the container, so a published 8123 that answers
+        # is evidence that the file arrived. With the image default in place,
+        # nothing would be listening on the container side of the published port.
+        ihatemoney_container_http_port: 8123
+        ihatemoney_container_http_host_bind_port: "127.0.0.1:8123"
+
+        ihatemoney_container_additional_volumes_custom:
+          - type: bind
+            src: /ihatemoney-molecule-extra
+            dst: /extra
+            options: readonly
+
+        # This is the scenario that renders Traefik labels, so that the label
+        # file can be checked for the port and the path prefix. The database
+        # scenarios leave them off and check that nothing Traefik-shaped is
+        # emitted at all.
+        ihatemoney_container_labels_traefik_enabled: true
+
+        # SQLite, kept in the role's own data directory rather than in the
+        # `/database` volume the image would fall back to.
         ihatemoney_database_type: sqlite
   env:
     # Workaround for https://github.com/ansible/molecule/issues/4391

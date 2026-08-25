@@ -45,17 +45,25 @@ pip3 install -r ./molecule/requirements.txt
 
 Currently these testing scenarios are available:
 
+All three scenarios install I hate money the way the role does, and then check the same set of things: that the service answers HTTP on the port the role configured (deliberately not the image's own default of 8000, so that a `PORT` that never reached the container shows up as nothing listening), that the configuration the container generated for itself carries the role's values and not the image's defaults, that the version the running process reports is the one `ihatemoney_version` pins, and that a directory listed in `ihatemoney_container_additional_volumes` really is mounted inside the container.
+
+They differ in the database and in what that lets them prove:
+
 ### `default`
 
-Tests a standard I hate money installation.
+SQLite, kept in the role's own data directory rather than in the `/database` volume the image would fall back to. Creates a project over the HTTP API and then reads it back out of the SQLite file.
+
+This is also the scenario that turns Traefik labels on, and checks the label file for the port, the hostname and the path prefix. It serves I hate money under a path prefix rather than at the root, so that `APPLICATION_ROOT` and the `stripprefix` middleware are exercised.
 
 ### `mariadb`
 
-Tests a standard I hate money installation with the MariaDB database.
+MariaDB, over a Unix socket. Creates a project over the HTTP API, then asks MariaDB itself for the row, and checks that no SQLite database was created on the side.
 
 ### `postgres`
 
-Tests a standard I hate money installation with the Postgres database.
+Postgres, over a Unix socket. Creates a project over the HTTP API, then asks Postgres itself for the row, and checks that no SQLite database was created on the side.
+
+Both database scenarios leave Traefik labels off and check that the label file contains nothing Traefik-shaped at all.
 
 ## Running
 

@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2026 spatterlight
 # SPDX-FileCopyrightText: 2026 Suguru Hirahara
 #
@@ -19,11 +20,27 @@
       ansible.builtin.package:
         name:
           - python3-requests
+          - fuse-overlayfs
         state: present
+
+    - name: Ensure the directory bind-mounted into the I hate money container exists
+      ansible.builtin.file:
+        path: "{{ ihatemoney_molecule_extra_mount_path_host }}"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure the marker file inside the bind-mounted directory exists
+      ansible.builtin.copy:
+        content: "{{ ihatemoney_molecule_extra_mount_marker }}\n"
+        dest: "{{ ihatemoney_molecule_extra_mount_path_host }}/marker"
+        mode: "0644"
 
     - name: Ensure Docker is installed for I hate money Molecule tests preparation
       ansible.builtin.include_role:
         name: ansible-role-docker
       vars:
         docker_daemon_options:
-          storage-driver: vfs
+          # `vfs` copies every layer of every image and turns a handful of
+          # container starts into minutes of I/O. `fuse-overlayfs` provides a
+          # real union filesystem inside this nested Docker instead.
+          storage-driver: fuse-overlayfs

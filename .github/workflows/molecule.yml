@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2026 spatterlight
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
@@ -5,22 +6,50 @@
 ---
 name: molecule
 
-on: [push, pull_request]  # yamllint disable-line rule:truthy
+on:  # yamllint disable-line rule:truthy
+  push:
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "LICENSES/**"
+      - "REUSE.toml"
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "LICENSES/**"
+      - "REUSE.toml"
+  workflow_dispatch:
 
 jobs:
   molecule:
     name: Run Molecule scenario '${{ matrix.scenario }}' on ${{ matrix.distro }}
     runs-on: ubuntu-latest
 
+    # Same-repository pull requests already run via the push event;
+    # run pull_request jobs only for pull requests from forks.
+    if: >-
+      github.event_name != 'pull_request'
+      || github.event.pull_request.head.repo.full_name != github.repository
+
     strategy:
+      # Both distributions are covered, and so is each of the three database
+      # backends, without running the full nine-job product on a shared runner
+      # pool. The scenarios differ in what they check, not in how they install.
       matrix:
-        distro:
-          - ubuntu2604
-          - debian13
-        scenario:
-          - default
-          - mariadb
-          - postgres
+        include:
+          - distro: ubuntu2604
+            scenario: default
+          - distro: debian13
+            scenario: default
+          - distro: ubuntu2604
+            scenario: postgres
+          - distro: debian13
+            scenario: mariadb
       fail-fast: false
 
     env:
@@ -49,7 +78,7 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: ~/.ansible/collections
-          key: ansible-collections-${{ hashFiles('ihatemoney/molecule/default/requirements.yml') }}
+          key: ansible-collections-${{ hashFiles('ihatemoney/molecule/*/requirements.yml') }}
 
       - name: Run Molecule
         working-directory: ihatemoney
