@@ -42,6 +42,19 @@
       ihatemoney_database_type must be 'mysql', 'postgres', or 'sqlite'.
   when: "ihatemoney_database_type not in ['mysql', 'postgres', 'sqlite']"
 
+# The container's entrypoint interpolates these into a Python configuration
+# file without quoting them (`MAIL_PORT = $MAIL_PORT`), so an empty value there
+# is a syntax error that only shows up as I hate money failing to boot.
+- name: Fail if I hate money mailer settings are incomplete
+  ansible.builtin.fail:
+    msg: >-
+      You need to define a required configuration setting (`{{ item }}`), because `ihatemoney_email_host` is set.
+  when: "ihatemoney_email_host | string | length > 0 and lookup('vars', item, default='') | string | length == 0"
+  with_items:
+    - ihatemoney_email_port
+    - ihatemoney_use_tls
+    - ihatemoney_use_ssl
+
 - name: Run if Traefik is enabled
   when: ihatemoney_container_labels_traefik_enabled | bool
   block:
