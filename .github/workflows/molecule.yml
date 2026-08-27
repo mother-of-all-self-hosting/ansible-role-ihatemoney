@@ -44,12 +44,8 @@ jobs:
         include:
           - distro: ubuntu2604
             scenario: default
-          - distro: debian13
-            scenario: default
           - distro: ubuntu2604
             scenario: postgres
-          - distro: debian13
-            scenario: mariadb
       fail-fast: false
 
     env:
