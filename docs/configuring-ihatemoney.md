@@ -83,7 +83,7 @@ For other settings, check variables such as `ihatemoney_database_*` on [`default
 
 #### Configuring connection to the database server (optional)
 
-By default the role is configured to establish connection with the database server via the Unix socket. You can mount the Unix socket by adding the following configuration to your `vars.yml` file:
+By default the role is configured to establish the connection to the database server via a Unix socket. You can mount the Unix socket by adding the following configuration to your `vars.yml` file:
 
 ```yaml
 # Specify the path to the MySQL compatible server's Unix socket path on the host (bind-mount source)
@@ -105,15 +105,33 @@ ihatemoney_database_mysql_socket_enabled: false
 ihatemoney_database_postgres_socket_enabled: false
 ```
 
+### Configuring the mailer (optional)
+
+I hate money sends project invitations and password reminders by email. It is not configured to send anything until `ihatemoney_email_host` is set; setting it makes the rest of these required, because the container image writes them into a Python configuration file without quoting and an empty value stops the service from starting. The role fails the playbook run with a clear message rather than letting that happen.
+
+```yaml
+ihatemoney_email_host: mail.example.com
+ihatemoney_email_port: 587
+ihatemoney_host_user: ihatemoney@example.com
+ihatemoney_host_password: YOUR_SMTP_PASSWORD_HERE
+ihatemoney_use_tls: "1"
+ihatemoney_use_ssl: "0"
+ihatemoney_default_from_email: "Budget manager <ihatemoney@example.com>"
+```
+
 ### Control project creation access (optional)
 
-By default the instance is open to public and anyone can create a project. If you wish to limit who is capable of creating one, you can secure the instance with the admin password.
+Out of the box, **nobody can create a project**: the role sets `ihatemoney_public_project_creation` to `false`, and `ihatemoney_admin_password` is empty. I hate money then sends anyone visiting `/create` to an administrator login that no password opens, and refuses `POST /api/projects` with a `400`. You need to pick one of the two options below before the instance is of any use.
 
-Note that the instance is automatically secured if the admin password is set to `ihatemoney_admin_password`. If you want to keep the instance public *while the admin password is set*, add the following configuration to your `vars.yml` file:
+To let anyone create a project, add the following configuration to your `vars.yml` file:
 
 ```yaml
 ihatemoney_public_project_creation: true
 ```
+
+To instead reserve project creation for whoever knows the administrator password, leave `ihatemoney_public_project_creation` at `false` and set `ihatemoney_admin_password` (see [Enabling administrative tasks](#enabling-administrative-tasks) below for how to generate its value). Setting the administrator password also enables the administration dashboard.
+
+The two settings are independent: with `ihatemoney_public_project_creation` set to `true`, project creation stays open to everyone even while the administrator password is set.
 
 ### Extending the configuration
 
@@ -121,9 +139,13 @@ There are some additional things you may wish to configure about the service.
 
 Take a look at:
 
-- [`defaults/main.yml`](../defaults/main.yml) for some variables that you can customize via your `vars.yml` file. You can override settings (even those that don't have dedicated playbook variables) using the `ihatemoney_environment_variables_additional_variables` variable
+- [`defaults/main.yml`](../defaults/main.yml) for some variables that you can customize via your `vars.yml` file. You can pass additional environment variables to the container using the `ihatemoney_container_additional_environment_variables` variable
 
-See [the official documentation](https://ihatemoney.readthedocs.io/en/latest/configuration.html) for a complete list of I hate money's config options that you could put in `ihatemoney_environment_variables_additional_variables`.
+See [the official documentation](https://ihatemoney.readthedocs.io/en/latest/configuration.html) for a complete list of I hate money's config options.
+
+Note that the container image does not read its settings from the environment directly. Its entrypoint builds `/etc/ihatemoney/ihatemoney.cfg` by interpolating a fixed list of variable names, so only a setting on that list can be reached through `ihatemoney_container_additional_environment_variables`: `DEBUG`, `ACTIVATE_ADMIN_DASHBOARD`, `ACTIVATE_DEMO_PROJECT`, `ADMIN_PASSWORD`, `ALLOW_PUBLIC_PROJECT_CREATION`, `BABEL_DEFAULT_TIMEZONE`, `MAIL_DEFAULT_SENDER`, `MAIL_PASSWORD`, `MAIL_PORT`, `MAIL_SERVER`, `MAIL_USE_SSL`, `MAIL_USE_TLS`, `MAIL_USERNAME`, `SECRET_KEY`, `SESSION_COOKIE_SECURE`, `SHOW_ADMIN_EMAIL`, `SQLALCHEMY_DATABASE_URI`, `SQLALCHEMY_TRACK_MODIFICATIONS`, `APPLICATION_ROOT`, `ENABLE_CAPTCHA` and `LEGAL_LINK`. Anything else is passed to the container and ignored.
+
+Those values are also interpolated unquoted, so a variable that expects a Python literal (`SESSION_COOKIE_SECURE=False`, `MAIL_PORT=25`) has to be given one, and an empty value makes I hate money fail to start.
 
 ## Installing
 

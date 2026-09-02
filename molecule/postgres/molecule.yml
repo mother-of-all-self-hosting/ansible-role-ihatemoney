@@ -1,5 +1,6 @@
-# SPDX-FileCopyrightText: 2026 Suguru Hirahara
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2026 spatterlight
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -12,7 +13,7 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: ihatemoney-${MOLECULE_DISTRO:-ubuntu2604}-default
+  - name: ihatemoney-${MOLECULE_DISTRO:-ubuntu2604}-postgres
     image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2604}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
@@ -31,26 +32,80 @@ provisioner:
         # Helper variables
         ihatemoney_debug_service_enabled: false
 
+        # The paths and the container name the role derives from its identifier.
+        # Those defaults are Jinja-derived, so a verify play cannot read them out
+        # of defaults/main.yml, and they are spelled out here instead.
+        ihatemoney_molecule_container: ihatemoney
+        ihatemoney_molecule_base_path: /ihatemoney
+        ihatemoney_molecule_data_path: /ihatemoney/data
+
+        # A directory bind-mounted into the container through
+        # `ihatemoney_container_additional_volumes_custom`. Reading the marker
+        # back from inside the container is what proves that the list really
+        # becomes a `--mount` argument instead of being rendered nowhere.
+        ihatemoney_molecule_extra_mount_path_host: /ihatemoney-molecule-extra
+        ihatemoney_molecule_extra_mount_path_container: /extra
+        ihatemoney_molecule_extra_mount_marker: molecule-extra-volume-marker
+
+        # A project created over the HTTP API and then looked for in Postgres
+        # itself, which is how this scenario checks that I hate money is writing
+        # to the database server rather than to a SQLite file.
+        ihatemoney_molecule_project_id: moleculeproject
+        ihatemoney_molecule_project_password: molecule-project-password
+
+        # The container ansible-role-postgres creates, and the superuser it
+        # creates it with. The verification queries go in as that user, since
+        # the role's own database user owns nothing else.
+        ihatemoney_molecule_postgres_container: postgres
+        ihatemoney_molecule_postgres_superuser: root
+
         # Variables for I hate money
         ihatemoney_uid: 1000
         ihatemoney_gid: 1000
         ihatemoney_scheme: http
         ihatemoney_hostname: localhost
+        ihatemoney_path_prefix: /
+
+        # Deliberately not the image's own default of `tralala`, so that the
+        # configuration inside the container is recognizably the role's and not
+        # the image's.
+        ihatemoney_environment_variable_secret: molecule-secret-postgres
+
+        # Needed for the API to accept the project the verification creates.
+        # The role's own default keeps creation closed.
+        ihatemoney_public_project_creation: true
+
+        # Deliberately not I hate money's own default of 8000. The port reaches
+        # the process only through `PORT` in the rendered env file, and gunicorn
+        # binds that port inside the container, so a published 8123 that answers
+        # is evidence that the file arrived. With the image default in place,
+        # nothing would be listening on the container side of the published port.
+        ihatemoney_container_http_port: 8123
+        ihatemoney_container_http_host_bind_port: "127.0.0.1:8123"
+
+        ihatemoney_container_additional_volumes_custom:
+          - type: bind
+            src: /ihatemoney-molecule-extra
+            dst: /extra
+            options: readonly
+
+        # Left off here, so that the label file can be checked to contain
+        # nothing Traefik-shaped at all. The `default` scenario turns them on
+        # and checks what they say.
         ihatemoney_container_labels_traefik_enabled: false
-        ihatemoney_container_http_host_bind_port: 8000
-        ihatemoney_environment_variable_secret: secret
-        ihatemoney_database_type: postgres
 
         # Variables required for I hate money to connect to the Postgres database (via Unix socket)
+        ihatemoney_database_type: postgres
         ihatemoney_database_postgres_username: my_database_username
         ihatemoney_database_postgres_password: my_database_password
-        ihatemoney_database_name: ihatemoney
+        # Deliberately not the role's default of `ihatemoney`: the verification
+        # looks for I hate money's tables in exactly this database, and only the
+        # connection string the role renders can point it there.
+        ihatemoney_database_name: ihatemoney_molecule
         ihatemoney_database_postgres_socket_enabled: true
         ihatemoney_database_postgres_socket_path_host: "{{ postgres_run_path }}"
-        ihatemoney_systemd_required_services_list_auto: |
-          {{
-            (['postgres.service'])
-          }}
+        ihatemoney_systemd_required_services_list_auto:
+          - postgres.service
 
         # Variables for Postgres
         postgres_uid: 1000
