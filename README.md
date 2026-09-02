@@ -39,6 +39,6 @@ Refer to [this page](./molecule/README.md) for details about how to utilize it.
 
 ### Releases
 
-Releases are tagged automatically. `.github/workflows/autotag.yml` runs [`bin/compute-next-tag.sh`](./bin/compute-next-tag.sh) on every push, and that script derives the tag from `ihatemoney_version` in [`defaults/main.yml`](defaults/main.yml) and from the tags that already exist — never from commit messages. A commit that touches only documentation or CI is not released.
+Tags are created by [`.github/workflows/autotag.yml`](.github/workflows/autotag.yml), which asks [`bin/compute-next-tag.sh`](bin/compute-next-tag.sh) what the commit on `main` should be released as. The answer comes from the I hate money version pinned in [`defaults/main.yml`](defaults/main.yml) and from the tags that already exist, so a commit that only touches documentation or CI is not released at all, and any change to the role itself is — without waiting for a dependency bump to carry it along.
 
-[`bin/test-compute-next-tag.sh`](./bin/test-compute-next-tag.sh) exercises the computation against throwaway repositories. It runs as a pre-commit hook whenever the script or `defaults/main.yml` changes, and can be run by hand at any time.
+[`bin/test-compute-next-tag.sh`](bin/test-compute-next-tag.sh) exercises that script against throwaway repositories, and runs as a prek hook.
