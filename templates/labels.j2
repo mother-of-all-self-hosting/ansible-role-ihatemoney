@@ -21,7 +21,7 @@ traefik.http.middlewares.{{ ihatemoney_identifier }}-basic-auth.basicauth.users=
 {% endif %}
 
 {% if ihatemoney_container_labels_traefik_path_prefix != '/' %}
-traefik.http.middlewares.{{ ihatemoney_identifier }}-slashless-redirect.redirectregex.regex=^({{ ihatemoney_container_labels_traefik_path_prefix | quote }})$
+traefik.http.middlewares.{{ ihatemoney_identifier }}-slashless-redirect.redirectregex.regex=^(https?://[^/]+{{ ihatemoney_container_labels_traefik_path_prefix | regex_escape }})$
 traefik.http.middlewares.{{ ihatemoney_identifier }}-slashless-redirect.redirectregex.replacement=${1}/
 {% set middlewares = middlewares + [ihatemoney_identifier + '-slashless-redirect'] %}
 {% endif %}
