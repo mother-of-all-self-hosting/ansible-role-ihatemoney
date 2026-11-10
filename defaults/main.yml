@@ -265,7 +265,7 @@ ihatemoney_database_postgres_socket_path_container: /run-postgres
 
 # NOTE: sqlalchemy expects the dialect to be one on https://docs.sqlalchemy.org/en/21/core/engines.html#database-urls
 ihatemoney_environment_variables_sqlalchemy_database_uri_mysql: |-
-  mysql+pymysql://{{ ihatemoney_database_mysql_username }}:{{ ihatemoney_database_mysql_password }}@
+  mysql+pymysql://{{ ihatemoney_database_mysql_username | urlencode | replace('/', '%2F') }}:{{ ihatemoney_database_mysql_password | urlencode | replace('/', '%2F') }}@
   {%- if ihatemoney_database_mysql_socket_enabled -%}
   localhost/{{ ihatemoney_database_name }}?unix_socket={{ ihatemoney_database_mysql_socket_path_container + '/mysqld.sock' }}
   {%- else -%}
@@ -273,7 +273,7 @@ ihatemoney_environment_variables_sqlalchemy_database_uri_mysql: |-
   {%- endif -%}
 
 ihatemoney_environment_variables_sqlalchemy_database_uri_postgres: |-
-  postgresql://{{ ihatemoney_database_postgres_username }}:{{ ihatemoney_database_postgres_password }}@
+  postgresql://{{ ihatemoney_database_postgres_username | urlencode | replace('/', '%2F') }}:{{ ihatemoney_database_postgres_password | urlencode | replace('/', '%2F') }}@
   {%- if ihatemoney_database_postgres_socket_enabled -%}
   localhost/{{ ihatemoney_database_name }}?host={{ ihatemoney_database_postgres_socket_path_container }}&client_encoding=utf8
   {%- else -%}
